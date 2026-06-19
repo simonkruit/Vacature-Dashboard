@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vacature dashboard — Eminent</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --border: #E4E2DA;
+    --text: #1A1916;
+    --muted: #7A7871;
+    --new-bg: #EAF6EE;
+    --new-border: #4CAF7D;
+    --new-text: #1B6B3A;
+    --accent: #1A1916;
+    --tag-bg: #EEECEA;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .header-left h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+
+  .header-left p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .new-badge {
+    background: var(--new-bg);
+    color: var(--new-text);
+    border: 1px solid var(--new-border);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .new-badge.visible { display: flex; }
+
+  .new-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--new-text);
+    flex-shrink: 0;
+  }
+
+  .btn {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { background: var(--tag-bg); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn.loading { opacity: 0.6; pointer-events: none; }
+
+  main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  .last-check {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #4CAF7D; display: inline-block; }
+  .dot.stale { background: var(--muted); }
+
+  .company-section {
+    margin-bottom: 2rem;
+  }
+
+  .company-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .company-initials {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .company-meta { flex: 1; min-width: 0; }
+
+  .company-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .company-url {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .company-count {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    white-space: nowrap;
+  }
+
+  .company-link-btn {
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 9px;
+    background: var(--surface);
+    white-space: nowrap;
+    transition: background 0.12s;
+  }
+
+  .company-link-btn:hover { background: var(--tag-bg); color: var(--text); }
+
+  .vacature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .vacature-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.12s, background 0.12s;
+  }
+
+  .vacature-item:hover {
+    border-color: #BFBDB6;
+    background: #FEFEFE;
+  }
+
+  .vacature-item.is-new {
+    border-color: var(--new-border);
+    background: var(--new-bg);
+  }
+
+  .vacature-item.is-new:hover { background: #DCF0E4; }
+
+  .vacature-title {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    color: var(--text);
+  }
+
+  .new-pill {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--new-text);
+    background: #C6EDD5;
+    border-radius: 999px;
+    padding: 2px 8px;
+    flex-shrink: 0;
+  }
+
+  .arrow {
+    font-size: 14px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+    font-size: 14px;
+    display: none;
+  }
+
+  .loading-state.visible { display: block; }
+
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--muted);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 8px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+  }
+
+  .mark-read-btn {
+    font-size: 11px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .mark-read-btn:hover { color: var(--text); }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 500px) {
+    header { padding: 1rem; }
+    main { padding: 1.25rem 1rem; }
+    .company-link-btn { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Vacature dashboard</h1>
+    <p>Eminent · technisch detacheringsbureau · 13 bedrijven</p>
+  </div>
+  <div class="header-right">
+    <span class="new-badge" id="newBadge">0 nieuw</span>
+    <button class="btn" id="markAllBtn" onclick="markAllRead()" style="display:none;">
+      ✓ Alles gelezen
+    </button>
+    <button class="btn" id="refreshBtn" onclick="refreshAll()">
+      ↻ Vernieuwen
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="last-check" id="lastCheck">
+    <span class="dot stale" id="statusDot"></span>
+    <span id="lastCheckText">Nog niet geladen — klik op Vernieuwen</span>
+  </div>
+
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <p>Vacatures ophalen...</p>
+  </div>
+
+  <div id="dashboard"></div>
+</main>
+
+<footer>
+  Vacatures worden opgehaald via een proxy · nieuw = niet eerder gezien op dit apparaat
+</footer>
+
+<script>
+const COMPANIES = [
+  {
+    id: 'wkz',
+    name: 'WKZ Totaalinstallateur',
+    url: 'https://www.wkz.nl/vacatures',
+    initials: 'WK',
+    color: '#E1F5EE',
+    textColor: '#0F6E56',
+    fetch: fetchWKZ
+  },
+  {
+    id: 'rijkaart',
+    name: 'Rijkaart Elektrotechniek',
+    url: 'https://www.rijkaart.nl/index.php?option=com_content&view=category&id=19&Itemid=159',
+    initials: 'RJ',
+    color: '#E6F1FB',
+    textColor: '#185FA5',
+    fetch: fetchRijkaart
+  },
+  {
+    id: 'itn',
+    name: 'ITN Techniek Ede',
+    url: 'https://itn.nl/werken-bij/',
+    initials: 'IT',
+    color: '#FAEEDA',
+    textColor: '#854F0B',
+    fetch: fetchITN
+  },
+  {
+    id: 'vandenberg',
+    name: 'Van den Berg Installateurs',
+    url: 'https://www.vandenberg-installateurs.nl/over-ons/vacatures/',
+    initials: 'VB',
+    color: '#EEEDFE',
+    textColor: '#3C3489',
+    fetch: fetchVanDenBerg
+  },
+  {
+    id: 'degroot',
+    name: 'De Groot Installatiegroep (Ede)',
+    url: 'https://www.degrootgroep.nl/werken-bij?locaties=ede',
+    initials: 'DG',
+    color: '#FAECE7',
+    textColor: '#993C1D',
+    fetch: fetchDeGroot
+  },
+  {
+    id: 'acel',
+    name: 'Acel Installaties',
+    url: 'https://www.acel.nl/werken-bij-acel/',
+    initials: 'AC',
+    color: '#FBEAF0',
+    textColor: '#993556',
+    fetch: fetchAcel
+  },
+  {
+    id: 'gwi',
+    name: 'GWI Installatietechniek',
+    url: 'https://gwi-installatietechniek.nl/vacatures/',
+    initials: 'GW',
+    color: '#F1EFE8',
+    textColor: '#5F5E5A',
+    fetch: null,
+    note: 'Deze site staat geen automatisch ophalen toe. Bekijk handmatig via de link.'
+  },
+  {
+    id: 'hagenleeuwis',
+    name: 'HagenLeeuwis',
+    url: 'https://www.hagenleeuwis.nl/vacatures',
+    initials: 'HL',
+    color: '#E6F1FB',
+    textColor: '#185FA5',
+    fetch: fetchHagenLeeuwis
+  },
+  {
+    id: 'vandorp',
+    name: 'Van Dorp (vestiging Zevenaar)',
+    url: 'https://werkenbijvandorp.eu/vacatures/?_locations=van-dorp-zevenaar',
+    initials: 'VD',
+    color: '#EAF3DE',
+    textColor: '#3B6D11',
+    fetch: fetchVanDorpZevenaar
+  },
+  {
+    id: 'unica',
+    name: 'Unica (regio Arnhem)',
+    url: 'https://www.werkenbijunica.nl/vacatures?filters%5Bcity%5D=Arnhem',
+    initials: 'UN',
+    color: '#F1EFE8',
+    textColor: '#5F5E5A',
+    fetch: null,
+    note: 'Vacatures laden via een app die niet automatisch is uit te lezen. Bekijk handmatig via de link.'
+  },
+  {
+    id: 'pola',
+    name: 'Pola Installatietechniek',
+    url: 'https://www.pola.nl/vacatures/',
+    initials: 'PO',
+    color: '#FAEEDA',
+    textColor: '#854F0B',
+    fetch: fetchPola
+  },
+  {
+    id: 'kleinpoelhuis',
+    name: 'Klein Poelhuis (regio Gelderland)',
+    url: 'https://kleinpoelhuis.nl/werken-bij?regions=gelderland',
+    initials: 'KP',
+    color: '#F1EFE8',
+    textColor: '#5F5E5A',
+    fetch: null,
+    note: 'Deze site staat geen automatisch ophalen toe. Bekijk handmatig via de link.'
+  },
+  {
+    id: 'hollander',
+    name: 'Hollander Techniek (regio Gelderland)',
+    url: 'https://werkenbij.hollandertechniek.nl/vacatures/?_werkgebied=gelderland',
+    initials: 'HT',
+    color: '#E1F5EE',
+    textColor: '#0F6E56',
+    fetch: fetchHollanderGelderland
+  },
+  {
+    id: 'loohuis',
+    name: 'Loohuis (vestiging Apeldoorn)',
+    url: 'https://www.werkenbijloohuis.nl/vacatures?l=481',
+    initials: 'LH',
+    color: '#EEEDFE',
+    textColor: '#3C3489',
+    fetch: fetchLoohuisApeldoorn
+  }
+];
+
+const PROXY = 'https://api.allorigins.win/get?url=';
+
+function getSeenKey(companyId) { return 'seen_' + companyId; }
+function getSeenVacatures(companyId) {
+  try { return JSON.parse(localStorage.getItem(getSeenKey(companyId)) || '[]'); }
+  catch { return []; }
+}
+function saveSeenVacatures(companyId, titles) {
+  localStorage.setItem(getSeenKey(companyId), JSON.stringify(titles));
+}
+
+async function fetchWKZ() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.wkz.nl/vacatures'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('h2').forEach(h2 => {
+    const link = h2.querySelector('a') || h2.closest('div')?.querySelector('a[href*="vacatures/"]');
+    const a = h2.parentElement?.querySelector('a[href*="vacatures/"]') || link;
+    const title = h2.textContent.trim();
+    if (title && title.length > 2 && title !== 'Openstaande vacatures' && title !== 'Onze diensten   Wat wij doen') {
+      const href = a ? a.href || a.getAttribute('href') : null;
+      const fullHref = href && !href.startsWith('http') ? 'https://www.wkz.nl' + href : href;
+      vacatures.push({ title, url: fullHref || 'https://www.wkz.nl/vacatures' });
+    }
+  });
+  if (vacatures.length === 0) {
+    doc.querySelectorAll('a[href*="vacatures/"]').forEach(a => {
+      const title = a.textContent.trim();
+      if (title && title.length > 3) vacatures.push({ title, url: a.href || 'https://www.wkz.nl' + a.getAttribute('href') });
+    });
+  }
+  return vacatures;
+}
+
+async function fetchRijkaart() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.rijkaart.nl/index.php?option=com_content&view=category&id=19&Itemid=159'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="catid=19"]').forEach(a => {
+    const title = a.textContent.trim();
+    if (title && title.length > 3 && !title.toLowerCase().includes('vacature')) {
+      const href = a.getAttribute('href');
+      const fullHref = href.startsWith('http') ? href : 'https://www.rijkaart.nl' + href;
+      vacatures.push({ title, url: fullHref });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchITN() {
+  const res = await fetch(PROXY + encodeURIComponent('https://itn.nl/werken-bij/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacatures/"]').forEach(a => {
+    const title = a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (title && title.length > 3 && href && href.includes('itn.nl/vacatures/')) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://itn.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchVanDenBerg() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.vandenberg-installateurs.nl/over-ons/vacatures/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a').forEach(a => {
+    const href = a.getAttribute('href') || '';
+    if (href.includes('vacature-')) {
+      const li = a.closest('li');
+      let title = li ? li.textContent.trim() : a.textContent.trim();
+      title = title.replace(/\[Klik hier voor meer informatie\]/gi, '').replace(/^Ben jij als\s*/i, '').replace(/de juiste versterking.*$/i, '').trim();
+      if (title) vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.vandenberg-installateurs.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchDeGroot() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.degrootgroep.nl/werken-bij?locaties=ede'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/werken-bij/vacatures/"]').forEach(a => {
+    const title = a.textContent.trim().replace(/\s+/g, ' ');
+    const href = a.getAttribute('href');
+    if (title && href) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.degrootgroep.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchAcel() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.acel.nl/werken-bij-acel/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacature/"]').forEach(a => {
+    const title = a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (title && title.toLowerCase().includes('bekijk vacature') === false && href) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.acel.nl' + href });
+    }
+  });
+  // titles sit as preceding siblings; rebuild from "Bekijk vacature" links' parent blocks
+  if (vacatures.length === 0 || vacatures.every(v => v.title.toLowerCase() === 'bekijk vacature')) {
+    const blocks = doc.querySelectorAll('a[href*="/vacature/"]');
+    const seen = new Set();
+    const out = [];
+    blocks.forEach(a => {
+      const href = a.getAttribute('href');
+      const parent = a.closest('div') || a.parentElement;
+      let title = '';
+      if (parent) {
+        const heading = parent.previousElementSibling;
+        title = heading ? heading.textContent.trim() : '';
+      }
+      if (!title) title = a.getAttribute('aria-label') || '';
+      if (title && href && !seen.has(href)) {
+        seen.add(href);
+        out.push({ title, url: href.startsWith('http') ? href : 'https://www.acel.nl' + href });
+      }
+    });
+    if (out.length > 0) return out;
+  }
+  return vacatures;
+}
+
+async function fetchHagenLeeuwis() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.hagenleeuwis.nl/vacatures'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacature/"]').forEach(a => {
+    const href = a.getAttribute('href');
+    const container = a.closest('div') || a.parentElement;
+    let title = '';
+    if (container) {
+      const heading = container.querySelector('h1,h2,h3,h4,h5');
+      title = heading ? heading.textContent.trim() : '';
+    }
+    if (title && href) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.hagenleeuwis.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchVanDorpZevenaar() {
+  const res = await fetch(PROXY + encodeURIComponent('https://werkenbijvandorp.eu/vacatures/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacature/"]').forEach(a => {
+    const container = a.closest('div');
+    const text = container ? container.textContent : a.textContent;
+    if (!text.toLowerCase().includes('zevenaar')) return;
+    const heading = container ? container.querySelector('h3,h2') : null;
+    const title = heading ? heading.textContent.trim() : a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (title && href) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://werkenbijvandorp.eu' + href });
+    }
+  });
+  const seen = new Set();
+  return vacatures.filter(v => { if (seen.has(v.url)) return false; seen.add(v.url); return true; });
+}
+
+async function fetchPola() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.pola.nl/vacatures/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacature/"]').forEach(a => {
+    const text = a.textContent.trim();
+    const match = text.match(/([A-Za-zÀ-ÿ()\/\-\s]+?)\s*Locatie:/);
+    const title = match ? match[1].trim() : text.split('Locatie:')[0].trim();
+    const href = a.getAttribute('href');
+    if (title && href) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.pola.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+async function fetchHollanderGelderland() {
+  const res = await fetch(PROXY + encodeURIComponent('https://werkenbij.hollandertechniek.nl/vacatures/'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('h3 a, h2 a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (!href || !href.includes('/vacatures/')) return;
+    const article = a.closest('article') || a.closest('div');
+    const text = article ? article.textContent : '';
+    if (!text.includes('Gelderland')) return;
+    const title = a.textContent.trim();
+    if (title) vacatures.push({ title, url: href.startsWith('http') ? href : 'https://werkenbij.hollandertechniek.nl' + href });
+  });
+  return vacatures;
+}
+
+async function fetchLoohuisApeldoorn() {
+  const res = await fetch(PROXY + encodeURIComponent('https://www.werkenbijloohuis.nl/vacatures?l=481'));
+  const data = await res.json();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, 'text/html');
+  const vacatures = [];
+  doc.querySelectorAll('a[href*="/vacatures/"]').forEach(a => {
+    const title = a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (title && href && href !== 'https://www.werkenbijloohuis.nl/vacatures' && !href.endsWith('/vacatures')) {
+      vacatures.push({ title, url: href.startsWith('http') ? href : 'https://www.werkenbijloohuis.nl' + href });
+    }
+  });
+  return vacatures;
+}
+
+function timeSince(date) {
+  const mins = Math.floor((Date.now() - date) / 60000);
+  if (mins < 1) return 'zojuist';
+  if (mins < 60) return mins + ' min geleden';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' uur geleden';
+  return Math.floor(hrs / 24) + ' dagen geleden';
+}
+
+let lastFetchTime = null;
+let allResults = {};
+
+function renderDashboard() {
+  const dashboard = document.getElementById('dashboard');
+  let totalNew = 0;
+  let html = '';
+
+  COMPANIES.forEach((company, idx) => {
+    const vacatures = allResults[company.id] || [];
+    const seen = getSeenVacatures(company.id);
+    const newOnes = vacatures.filter(v => !seen.includes(v.title));
+    if (company.fetch) totalNew += newOnes.length;
+
+    if (idx > 0) html += '<hr class="section-divider">';
+
+    html += `
+      <div class="company-section">
+        <div class="company-header">
+          <div class="company-initials" style="background:${company.color};color:${company.textColor};">${company.initials}</div>
+          <div class="company-meta">
+            <div class="company-name">${company.name}</div>
+            <div class="company-url">${company.url.replace('https://', '')}</div>
+          </div>
+          <span class="company-count">${company.fetch ? vacatures.length + ' vacature' + (vacatures.length !== 1 ? 's' : '') : 'handmatig'}</span>
+          <a class="company-link-btn" href="${company.url}" target="_blank">Naar site ↗</a>
+        </div>
+        <div class="vacature-list">
+    `;
+
+    if (!company.fetch) {
+      html += `<div style="font-size:13px;color:var(--muted);padding:8px 0;">${company.note || 'Bekijk handmatig via de link.'}</div>`;
+    } else if (vacatures.length === 0) {
+      html += `<div style="font-size:13px;color:var(--muted);padding:8px 0;">Geen vacatures gevonden of kon site niet bereiken.</div>`;
+    } else {
+      vacatures.forEach(v => {
+        const isNew = !seen.includes(v.title);
+        html += `
+          <a class="vacature-item${isNew ? ' is-new' : ''}" href="${v.url}" target="_blank">
+            <span class="vacature-title">${v.title}</span>
+            ${isNew ? '<span class="new-pill">Nieuw</span>' : ''}
+            <span class="arrow">→</span>
+          </a>
+        `;
+      });
+    }
+
+    html += `</div>`;
+    if (company.fetch && newOnes.length > 0) {
+      html += `<button class="mark-read-btn" onclick="markRead('${company.id}')">Markeer als gelezen</button>`;
+    }
+    html += `</div>`;
+  });
+
+  dashboard.innerHTML = html;
+
+  const badge = document.getElementById('newBadge');
+  const markAllBtn = document.getElementById('markAllBtn');
+  if (totalNew > 0) {
+    badge.textContent = totalNew + ' nieuw';
+    badge.classList.add('visible');
+    markAllBtn.style.display = 'flex';
+  } else {
+    badge.classList.remove('visible');
+    markAllBtn.style.display = 'none';
+  }
+
+  if (lastFetchTime) {
+    document.getElementById('statusDot').className = 'dot';
+    document.getElementById('lastCheckText').textContent = 'Bijgewerkt ' + timeSince(lastFetchTime);
+  }
+}
+
+function markRead(companyId) {
+  const vacatures = allResults[companyId] || [];
+  saveSeenVacatures(companyId, vacatures.map(v => v.title));
+  renderDashboard();
+}
+
+function markAllRead() {
+  COMPANIES.forEach(c => { if (c.fetch) markRead(c.id); });
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  btn.textContent = '↻ Laden...';
+  document.getElementById('loadingState').classList.add('visible');
+  document.getElementById('dashboard').innerHTML = '';
+
+  await Promise.allSettled(
+    COMPANIES.filter(c => c.fetch).map(async company => {
+      try {
+        const vacatures = await company.fetch();
+        const unique = [];
+        const seen = new Set();
+        vacatures.forEach(v => {
+          if (!seen.has(v.title)) { seen.add(v.title); unique.push(v); }
+        });
+        allResults[company.id] = unique;
+      } catch (e) {
+        console.warn('Fout bij ophalen', company.name, e);
+        allResults[company.id] = allResults[company.id] || [];
+      }
+    })
+  );
+
+  lastFetchTime = Date.now();
+  localStorage.setItem('lastFetch', lastFetchTime);
+  document.getElementById('loadingState').classList.remove('visible');
+  btn.classList.remove('loading');
+  btn.textContent = '↻ Vernieuwen';
+  renderDashboard();
+}
+
+window.addEventListener('load', () => {
+  const lastFetch = localStorage.getItem('lastFetch');
+  if (lastFetch) lastFetchTime = parseInt(lastFetch);
+  refreshAll();
+});
+</script>
+</body>
+</html>
